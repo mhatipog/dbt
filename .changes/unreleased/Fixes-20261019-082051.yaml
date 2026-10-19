@@ -1,0 +1,7 @@
+kind: Fixes
+body: Include columns from all expected unit-test rows in comparisons
+time: 2026-10-19T08:20:51.703176856+02:00
+custom:
+    author: mhatipog
+    issue: ""
+    project: dbt-core

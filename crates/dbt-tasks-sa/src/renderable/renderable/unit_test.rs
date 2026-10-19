@@ -1084,8 +1084,9 @@ fn row_column_names_or_default<'a>(
     if rows.is_empty() {
         column_names
     } else {
-        let names = rows[0]
-            .keys()
+        let names = rows
+            .iter()
+            .flat_map(|row| row.keys())
             .map(|k| k.to_ascii_lowercase())
             .collect::<HashSet<_>>();
         expect_schema
@@ -2773,6 +2774,28 @@ mod tests {
     use minijinja::dispatch_object::DispatchObject;
 
     type YmlValue = dbt_yaml::Value;
+
+    #[test]
+    fn test_expected_dict_columns_include_keys_from_later_rows() {
+        let schema = Arc::new(Schema::new(vec![
+            Field::new("merchant_id", DataType::Int64, true),
+            Field::new("team_id", DataType::Int64, false),
+            Field::new("ignored", DataType::Utf8, true),
+        ]));
+        let rows = vec![
+            BTreeMap::from([("team_id".to_string(), YmlValue::number(1.into()))]),
+            BTreeMap::from([
+                ("team_id".to_string(), YmlValue::number(2.into())),
+                ("MERCHANT_ID".to_string(), YmlValue::number(999.into())),
+            ]),
+        ];
+
+        let columns = schema.fields().iter().map(|f| f.name().as_str()).collect();
+        assert_eq!(
+            row_column_names_or_default(&rows, columns, &schema),
+            vec!["merchant_id", "team_id"]
+        );
+    }
 
     #[test]
     fn configured_local_unit_test_uses_query_schema_fallback() {
